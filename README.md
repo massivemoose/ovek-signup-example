@@ -11,12 +11,16 @@ A tiny Go signup app that writes email addresses to a PocketBase sidecar deploye
 - Injecting PocketBase superuser credentials into the app as project secrets.
 - Running the same app locally against a local PocketBase binary.
 
+A useful Ovek pattern: The app talks to PocketBase the same way locally and after deployment. In local development, you run a local PocketBase binary as the dev database. In production, Ovek deploys a per-project PocketBase sidecar and credentials are injected as secrets.
+
+Ovek makes persistence local by default and per-app in production. You develop against the same kind of service you deploy, without sharing a production database or hand-wiring credentials for every project.
+
 ## Quick Start
 
 Choose the path that matches what you want to test:
 
 - **Deploy with Ovek:** follow [Deployment Example Using Ovek](#deployment-example-using-ovek).
-- **Run the app locally without Ovek:** follow [Local Development](#local-development).
+- **Local development flow:** follow [Local Development](#local-development).
 
 ## Prerequisites
 
