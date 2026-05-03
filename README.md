@@ -19,6 +19,7 @@ Ovek makes persistence local by default and per-app in production. You develop a
 
 Choose the path that matches what you want to test:
 
+- **Run the published GHCR capsule:** follow [Published GHCR Capsule Image](#published-ghcr-capsule-image).
 - **Deploy with Ovek:** follow [Deployment Example Using Ovek](#deployment-example-using-ovek).
 - **Local development flow:** follow [Local Development](#local-development).
 
@@ -36,6 +37,67 @@ For the local development path:
 - Go, for running this app.
 - A local PocketBase binary.
 - direnv is optional, but useful for loading local PocketBase credentials.
+
+## Published GHCR Capsule Image
+
+This repo includes a root `Dockerfile` as the image build recipe. The GitHub Actions workflow uses Docker Buildx to build that recipe for `linux/amd64` and push the resulting OCI-compatible container image to GHCR.
+
+### Publish The Image
+
+The image publishes automatically on pushes to `main`. To publish it manually:
+
+1. Open the `massivemoose/ovek-signup-example` repo on GitHub.
+2. Open the **Actions** tab.
+3. Select **Publish OCI image to GHCR**.
+4. Click **Run workflow**, choose the `main` branch, and start the run.
+
+The workflow publishes both tags:
+
+```text
+ghcr.io/massivemoose/ovek-signup-example:latest
+ghcr.io/massivemoose/ovek-signup-example:<git-sha>
+```
+
+### Make The GHCR Package Public
+
+GHCR packages may be private after the first publish. To make anonymous pulls work:
+
+1. Open the package page for `ovek-signup-example` from the repo sidebar or GitHub Packages.
+2. Open **Package settings**.
+3. Under package visibility, choose **Change visibility**.
+4. Select **Public** and confirm the package name when GitHub asks.
+
+### Verify Anonymous Pull
+
+Log out of GHCR first if your Docker client is authenticated:
+
+```bash
+docker logout ghcr.io
+```
+
+Then pull the public image:
+
+```bash
+docker pull ghcr.io/massivemoose/ovek-signup-example:latest
+```
+
+Expected: the pull succeeds without GHCR credentials.
+
+### Run The Published Image With Ovek
+
+Initialize the PocketBase sidecar and inject its app secrets:
+
+```bash
+ovek pb init signup-demo --app-secrets
+```
+
+Run the published image:
+
+```bash
+ovek run signup-demo ghcr.io/massivemoose/ovek-signup-example:latest
+```
+
+The app reads `PORT`, `POCKETBASE_URL`, `PB_SUPERUSER_EMAIL`, and `PB_SUPERUSER_PASSWORD` from the Ovek runtime environment. If `PORT` is not set, it defaults to `8080`.
 
 ## Deployment Example Using Ovek
 
@@ -322,6 +384,33 @@ http://127.0.0.1:8090/_/
 ```
 
 Sign in with the local superuser account, then open the `signups` collection to inspect submitted email records.
+
+## Local Container Validation
+
+Run the Go tests:
+
+```bash
+go test ./...
+```
+
+Build the local container image:
+
+```bash
+docker build -t ovek-signup-example:local .
+```
+
+Run the image against a PocketBase instance reachable from Docker:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e PORT=8080 \
+  -e POCKETBASE_URL=http://host.docker.internal:8090 \
+  -e PB_SUPERUSER_EMAIL=<email> \
+  -e PB_SUPERUSER_PASSWORD=<password> \
+  ovek-signup-example:local
+```
+
+Expected: the app starts on `:8080`, authenticates to PocketBase, and serves the form at `http://localhost:8080`.
 
 ## Useful Commands
 
